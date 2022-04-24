@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 
 char memoria[154];
 unsigned int mbr,
@@ -47,23 +49,23 @@ void executa() {
             reg[ro0] += reg[ro1];
             break;
         //sub - 0b0000 0011
-        case: 0x03:
+        case 0x03:
             reg[ro0] -= reg[ro1];
             break;
         //mul - 0b0000 0100
-        case: 0x04:
+        case 0x04:
             reg[ro0] *= reg[ro1];
             break;
         //div - 0b0000 0101
-        case: 0x05:
+        case 0x05:
             reg[ro0] /= reg[ro1];
         //cmp = 0b0000 0110
-        case: 0x06:
-            (reg[ro0] == reg[ro1]) ? e = 1 : e = 0;
+        case 0x06:
+            e = reg[ro0] == reg[ro1];
 
-            (reg[ro0] < reg[ro1]) ? l = 1 : l = 0;
+            l = reg[ro0] < reg[ro1];
 
-            (reg[ro0] < reg[ro1]) ? g = 1 : g = 0;
+            g = reg[ro0] < reg[ro1];
 
             break;
 
@@ -105,7 +107,7 @@ void executa() {
             break;
         // jle - 0b0000 1111
         case 0x0F:
-            if(l == 1 || e = 1)
+            if(l == 1 || e == 1)
                 pc = mar;
             break;
         // jg - 0b0001 0000
@@ -115,7 +117,7 @@ void executa() {
             break;
         // jge - 0b0001 0001
         case 0x11:
-            if(e == 1 || g = 1)
+            if(e == 1 || g == 1)
                 pc = mar;
             break;
         // jmp - 0b0001 0010
@@ -144,7 +146,7 @@ void executa() {
             reg[ro0] += imm;
             break;
         // subi - 0b0001 0111
-        case 0x17
+        case 0x17:
             reg[ro0] -= imm;
             break;
         // muli - 0b0001 1000
@@ -166,27 +168,250 @@ void executa() {
     }
 }
 
+
+
+unsigned int converter_opcode(char acumulador[]){
+    char opcodes[28][4] = {"hlt", "nop", "add", "sub", "mul", "div", "cmp", "movr", "and", "our", "xor", "not", "je", "jne", "jl", "jle", "jg", "jge", "jmp", "ld", "st", "movi", "addi", "subi", "muli", "divi", "lsh", "rsh"};
+
+    for (int i = 0; i < 27; i++) {
+        if (strcmp(acumulador, opcodes[i]) == 0) {
+            return i;
+        }
+    }
+}
+
+void memoriaWriter() {
+    FILE *arq = NULL;
+    char linha[100];
+    char *line = NULL;
+    size_t len = 0;
+    char l;
+
+    arq = fopen("example.txt", "rt");
+    if (arq == NULL) {
+        printf("File not found \n");
+        exit(EXIT_FAILURE);
+    }
+
+    while ((getline(&line, &len, arq)) != -1){
+        char acumulador[10];
+        char acumuladorVazio[10];
+        int flag = 1;
+        char dadoInstrucao;
+        unsigned int posMemo;
+        unsigned int dados;
+        unsigned int acumuladorHex;
+
+        for(int i = 0 ;  i < strlen(line); i++){
+            if(line[i] != ';' && line[i] != '\r' && line[i] != ' ' && line[i] != ','){
+                strncat(acumulador, &line[i], 1);
+            } else if (strcmp(acumulador, "") != 0) {
+                if (flag == 1) { // Posição na memoria
+                    posMemo = strtol(acumulador, NULL, 16);
+                    flag = 2;
+                    strcpy(acumulador, "");
+                } else if (flag == 2) { // É dados ou instrução
+                    dadoInstrucao = acumulador[0];
+                    flag = 3;
+                    strcpy(acumulador, "");
+                } else if (flag == 3) {
+                    printf("acumulador: %s dadoInstrucao: %c\n", acumulador, dadoInstrucao);
+                    if (dadoInstrucao == 'd') { // Grava se for dado
+                        memoria[posMemo] = strtol(acumulador, NULL, 16);
+                        flag = 0;
+                    }
+                    if (dadoInstrucao == 'i') { // converte opcode
+                        dados = converter_opcode(acumulador);
+                        dados = dados << 24;
+                    }
+
+                    flag = 4;
+                    strcpy(acumulador, "");
+                } else if (flag == 4) { // converte reg
+                    acumuladorHex = strtol(&acumulador[1], NULL, 16) << 21;
+                    dados = dados | acumuladorHex;
+
+                    flag = 5;
+                    strcpy(acumulador, "");
+                }
+            }
+        }
+
+        if (flag == 5) { // converte reg
+            if (acumulador[0] == 'r') {
+                acumuladorHex = strtol(&acumulador[1], NULL, 16) << 18;
+            } else {
+                acumuladorHex = strtol(acumulador, NULL, 16);
+            }
+            dados = dados | acumuladorHex;
+            printf("%08x\n", dados);
+            flag = 6;
+            strcpy(acumulador, "");
+        }
+    }
+
+    fclose(arq);
+    if (line)
+        free(line);
+}
+
+void amostragem() {
+    printf("CPU: \n");
+    int r = 0;
+    for(int j = 0; j < 5; j++) {
+        for (int i = 0; i < 4; i++) {
+            char regName[6];
+            char text[21];
+            char espace[] = " ";
+
+            if (j <= 2) {
+                unsigned int regValue;
+                if (j <= 1) {
+                    regValue = reg[r];
+                    sprintf(regName, "R%i:", r++);
+                } else if (j == 2) {
+                    switch (i) {
+                        case 0:
+                            sprintf(regName, "MBR:");
+                            regValue = mbr;
+                            break;
+                        case 1:
+                            sprintf(regName, "MAR:");
+                            regValue = mar;
+                            break;
+                        case 2:
+                            sprintf(regName, "IMM:");
+                            regValue = imm;
+                            break;
+                        case 3:
+                            sprintf(regName, "PC:");
+                            regValue = pc;
+                            break;
+                        default:
+                            break;
+                    }
+                }
+
+                int diff = 4 - strlen(regName);
+
+                if (diff > 0) {
+                    for (int l = 0; l < diff; l++) {
+                        strcat(regName, espace);
+                    }
+                }
+
+                sprintf(text, "%s 0x%08X", regName, regValue);
+            } else {
+                unsigned char regValue;
+
+                if (j == 3) {
+                    switch (i) {
+                        case 0:
+                            sprintf(regName, "IR:");
+                            regValue = ir;
+                            break;
+                        case 1:
+                            sprintf(regName, "RO0:");
+                            regValue = ro0;
+                            break;
+                        case 2:
+                            sprintf(regName, "RO1:");
+                            regValue = ro1;
+                            break;
+                        default:
+                            break;
+                    }
+
+                    int diff = 4 - strlen(regName);
+
+                    if (diff > 0) {
+                        for (int l = 0; l < diff; l++) {
+                            strcat(regName, espace);
+                        }
+                    }
+
+                    if (i == 3) {
+                        sprintf(text, " ");
+                    } else {
+                        sprintf(text, "%s 0x%02X", regName, regValue);
+                    }
+                } else {
+
+                    switch (i) {
+                        case 0:
+                            sprintf(regName, "E:");
+                            regValue = e;
+                            break;
+                        case 1:
+                            sprintf(regName, "L:");
+                            regValue = l;
+                            break;
+                        case 2:
+                            sprintf(regName, "G:");
+                            regValue = g;
+                            break;
+                        default:
+                            break;
+                    }
+
+                    int diff = 4 - strlen(regName);
+
+                    if (diff > 0) {
+                        for (int l = 0; l < diff; l++) {
+                            strcat(regName, espace);
+                        }
+                    }
+
+                    if (i == 3) {
+                        sprintf(text, " ");
+                    } else {
+                        sprintf(text, "%s 0x%X", regName, regValue);
+                    }
+                }
+            }
+
+            int diff = 17 - strlen(text);
+
+            printf("%s", text);
+            if (i != 3) {
+                if (diff > 0) {
+                    for (int l = 0; l < diff; l++) {
+                        printf("%s", " ");
+                    }
+                }
+            } else {
+                printf("\n");
+            }
+        }
+    }
+
+    printf("\n");
+
+    r = 0;
+    printf("Memória: \n");
+    for (int i = 0; i < 39; i++) {
+        for (int j = 0; j < 4; j++) {
+            if (r <= 153) {
+                printf("%02X: 0x%02X  ", r, memoria[r]);
+                r++;
+            }
+            if (j == 3) {
+                printf("\n");
+            }
+        }
+    }
+}
+
 int main() {
-    memoria[0] = 0x13;
-    memoria[1] = 0x00;
-    memoria[2] = 0x00;
-    memoria[3] = 0x1E;
-    memoria[4] = 0x13;
-    memoria[5] = 0x20;
-    memoria[6] = 0x00;
-    memoria[7] = 0x24;
-    busca();
-    pc += 4;
-    printf("%x\n", mbr);
-    printf("%x\n", mar);
-    printf("%x\n", pc);
-    decodifica();
-    printf("%x\n", mbr);
-    printf("%x\n", ir);
-    printf("%x\n", mar);
-    printf("%x\n", imm);
-    printf("%x\n", ro0);
-    printf("%x\n", ro1);
+    memoriaWriter();
+
+    //busca();
+
+    //decodifica();
+
+    //executa();
+
+    //amostragem();
     pc += 4;
 
 
