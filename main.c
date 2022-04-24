@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-char memoria[154];
+unsigned char memoria[154];
 unsigned int mbr,
              mar,
              imm,
@@ -170,13 +170,65 @@ void executa() {
 
 
 
-unsigned int converter_opcode(char acumulador[]){
-    char opcodes[28][4] = {"hlt", "nop", "add", "sub", "mul", "div", "cmp", "movr", "and", "our", "xor", "not", "je", "jne", "jl", "jle", "jg", "jge", "jmp", "ld", "st", "movi", "addi", "subi", "muli", "divi", "lsh", "rsh"};
-
-    for (int i = 0; i < 27; i++) {
-        if (strcmp(acumulador, opcodes[i]) == 0) {
-            return i;
-        }
+unsigned int converter_opcode(char acumulador[]){    
+    if (strcmp(acumulador, "hlt") == 0) {
+        return 0;
+    } else if (strcmp(acumulador, "nop") == 0) {
+        return 1;
+    } else if (strcmp(acumulador, "add") == 0) {
+        return 2;
+    } else if (strcmp(acumulador, "sub") == 0) {
+        return 3;
+    } else if (strcmp(acumulador, "mul") == 0) {
+        return 4;
+    } else if (strcmp(acumulador, "div") == 0) {
+        return 5;
+    } else if (strcmp(acumulador, "cmp") == 0) {
+        return 6;
+    } else if (strcmp(acumulador, "movr") == 0) {
+        return 7;
+    } else if (strcmp(acumulador, "and") == 0) {
+        return 8;
+    } else if (strcmp(acumulador, "or") == 0) {
+        return 9;
+    } else if (strcmp(acumulador, "xor") == 0) {
+        return 10;
+    } else if (strcmp(acumulador, "not") == 0) {
+        return 11;
+    } else if (strcmp(acumulador, "je") == 0) {
+        return 12;
+    } else if (strcmp(acumulador, "jne") == 0) {
+        return 13;
+    } else if (strcmp(acumulador, "jl") == 0) {
+        return 14;
+    } else if (strcmp(acumulador, "jle") == 0) {
+        return 15;
+    } else if (strcmp(acumulador, "jg") == 0) {
+        return 16;
+    } else if (strcmp(acumulador, "jge") == 0) {
+        return 17;
+    } else if (strcmp(acumulador, "jmp") == 0) {
+        return 18;
+    } else if (strcmp(acumulador, "ld") == 0) {
+        return 19;
+    } else if (strcmp(acumulador, "st") == 0) {
+        return 20;
+    } else if (strcmp(acumulador, "movi") == 0) {
+        return 21;
+    } else if (strcmp(acumulador, "addi") == 0) {
+        return 22;
+    } else if (strcmp(acumulador, "subi") == 0) {
+        return 23;
+    } else if (strcmp(acumulador, "muli") == 0) {
+        return 24;
+    } else if (strcmp(acumulador, "divi") == 0) {
+        return 25;
+    } else if (strcmp(acumulador, "lsh") == 0) {
+        return 26;
+    } else if (strcmp(acumulador, "rsh") == 0) {
+        return 27;
+    } else {
+        return 0;
     }
 }
 
@@ -195,18 +247,18 @@ void memoriaWriter() {
 
     while ((getline(&line, &len, arq)) != -1){
         char acumulador[10];
-        char acumuladorVazio[10];
         int flag = 1;
         char dadoInstrucao;
         unsigned int posMemo;
         unsigned int dados;
+        unsigned int dadosPos;
         unsigned int acumuladorHex;
 
-        for(int i = 0 ;  i < strlen(line); i++){
-            if(line[i] != ';' && line[i] != '\r' && line[i] != ' ' && line[i] != ','){
+        for(int i = 0 ;  i <= strlen(line); i++){
+            if(line[i] != ';' && line[i] != '\r' && line[i] != '\n' && line[i] != ' ' && line[i] != ','){
                 strncat(acumulador, &line[i], 1);
             } else if (strcmp(acumulador, "") != 0) {
-                if (flag == 1) { // Posição na memoria
+                if (flag == 1) { // Posição na memoriat                    
                     posMemo = strtol(acumulador, NULL, 16);
                     flag = 2;
                     strcpy(acumulador, "");
@@ -215,17 +267,17 @@ void memoriaWriter() {
                     flag = 3;
                     strcpy(acumulador, "");
                 } else if (flag == 3) {
-                    printf("acumulador: %s dadoInstrucao: %c\n", acumulador, dadoInstrucao);
                     if (dadoInstrucao == 'd') { // Grava se for dado
-                        memoria[posMemo] = strtol(acumulador, NULL, 16);
-                        flag = 0;
-                    }
-                    if (dadoInstrucao == 'i') { // converte opcode
+                        dados = strtol(acumulador, NULL, 16);
+
+                        flag = 6;
+                    } else if (dadoInstrucao == 'i') { // converte opcode
                         dados = converter_opcode(acumulador);
                         dados = dados << 24;
+
+                        flag = 4;
                     }
 
-                    flag = 4;
                     strcpy(acumulador, "");
                 } else if (flag == 4) { // converte reg
                     acumuladorHex = strtol(&acumulador[1], NULL, 16) << 21;
@@ -244,9 +296,20 @@ void memoriaWriter() {
                 acumuladorHex = strtol(acumulador, NULL, 16);
             }
             dados = dados | acumuladorHex;
-            printf("%08x\n", dados);
             flag = 6;
             strcpy(acumulador, "");
+        }
+
+        if (flag == 6) {
+            dadosPos = dados;
+            memoria[posMemo] = dadosPos >> 24;
+            dadosPos = dados & 0x00FF0000;
+            memoria[posMemo+1] = dadosPos >> 16;
+            dadosPos = dados & 0x0000FF00;
+            memoria[posMemo+2] = dadosPos >> 8;
+            dadosPos = dados & 0x000000FF;
+            memoria[posMemo+3] = dadosPos;
+            flag = 0;
         }
     }
 
@@ -405,14 +468,16 @@ void amostragem() {
 int main() {
     memoriaWriter();
 
-    //busca();
+    while (1) {
+        busca();
+        decodifica();
+        executa();
 
-    //decodifica();
-
-    //executa();
-
-    //amostragem();
-    pc += 4;
+        amostragem();
+        pc += 4;
+        printf("Pressione uma tecla para iniciar o próximo ciclo de máquina ou aperte CTRL+C para finalizar a execução do trabalho.\n");  
+        getchar();    
+    }
 
 
     return 0;
