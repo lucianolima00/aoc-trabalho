@@ -38,7 +38,6 @@ void executa() {
     switch (ir) {
         //hlt - 0b0000 0000
         case 0x00:
-            pc += 999;
             break;
         //nop - 0x0000 0001
         case 0x01:
@@ -71,7 +70,7 @@ void executa() {
 
             l = reg[ro0] < reg[ro1];
 
-            g = reg[ro0] < reg[ro1];
+            g = reg[ro0] > reg[ro1];
             
             pc += 4;
             break;
@@ -102,33 +101,51 @@ void executa() {
             break;
         // je - 0b0000 1100
         case 0x0C:
-            if (e == 1) 
+            if (e == 1) {
                 pc = mar;
+            } else {
+                pc += 4;
+            }
             break;
         // jne - 0b0000 1110
         case 0x0D:
-            if(e == 0)
+            if(e == 0) {
                 pc = mar;
+            } else {
+                pc += 4;
+            }
             break;
         // jl - 0b0000 1110
         case 0x0E:
-            if(l == 1) 
+            if(l == 1) {
                 pc = mar;
+            } else {
+                pc += 4;
+            }
             break;
         // jle - 0b0000 1111
         case 0x0F:
-            if(l == 1 || e == 1)
+            if(l == 1 || e == 1) {
                 pc = mar;
+            } else {
+                pc += 4;
+            }
             break;
         // jg - 0b0001 0000
         case 0x10:
-            if(g == 1)
-                pc = ro0;
+            if(g == 1) {
+                pc = mar;
+            } else {
+                pc += 4;
+            }
             break;
         // jge - 0b0001 0001
         case 0x11:
-            if(e == 1 || g == 1)
-                pc = mar;
+            if(e == 1 || g == 1) {
+                pc = ro0;
+            } else {
+                pc += 4;
+            }
             break;
         // jmp - 0b0001 0010
         case 0x12:
