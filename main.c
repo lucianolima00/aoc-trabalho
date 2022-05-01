@@ -34,31 +34,37 @@ void decodifica() {
     imm = (mbr & 0x001FFFFF);
 }
 
-void executa() {
+void executa() {    
     switch (ir) {
         //hlt - 0b0000 0000
         case 0x00:
-            pc = 0;
+            pc += 999;
             break;
         //nop - 0x0000 0001
         case 0x01:
             pc++;
+            pc += 4;
             break;
         //add - 0b0000 0010
         case 0x02:
             reg[ro0] += reg[ro1];
+            pc += 4;
             break;
         //sub - 0b0000 0011
         case 0x03:
             reg[ro0] -= reg[ro1];
+            pc += 4;
             break;
         //mul - 0b0000 0100
         case 0x04:
             reg[ro0] *= reg[ro1];
+            pc += 4;
             break;
         //div - 0b0000 0101
         case 0x05:
             reg[ro0] /= reg[ro1];
+            pc += 4;
+            break;
         //cmp = 0b0000 0110
         case 0x06:
             e = reg[ro0] == reg[ro1];
@@ -66,33 +72,37 @@ void executa() {
             l = reg[ro0] < reg[ro1];
 
             g = reg[ro0] < reg[ro1];
-
+            
+            pc += 4;
             break;
-
         // movr - 0b0000 0111
         case 0x07:
             reg[ro0] = reg[ro1];
+            pc += 4;
             break;
-
         // and - 0b0000 1000
         case 0x08:
             reg[ro0] = reg[ro0] & reg[ro1];
+            pc += 4;
             break;
         // or - 0b0000 1001
         case 0x09:
             reg[ro0] = reg[ro0] | reg[ro1];
+            pc += 4;
             break;
         // xor - 0b0000 1010
         case 0x0A:
             reg[ro0] = reg[ro0] ^ reg[ro1];
+            pc += 4;
             break;
         // not - 0b0000 1011
         case 0x0B:
             reg[ro0] =! reg[ro1];
+            pc += 4;
             break;
         // je - 0b0000 1100
         case 0x0C:
-            if(e == 1)
+            if (e == 1) 
                 pc = mar;
             break;
         // jne - 0b0000 1110
@@ -102,7 +112,7 @@ void executa() {
             break;
         // jl - 0b0000 1110
         case 0x0E:
-            if(l == 1)
+            if(l == 1) 
                 pc = mar;
             break;
         // jle - 0b0000 1111
@@ -128,42 +138,51 @@ void executa() {
         case 0x13:
             busca();
             reg[ro0] = mbr;
+            pc += 4;
             break;
         // st - 0b0001 0100
         case 0x14:
             mbr = reg[ro0];
-            memoria[mar++] = mbr & 0xFF000000 >> 24;
-            memoria[mar++] = mbr & 0x00FF0000 >> 16;
-            memoria[mar++] = mbr & 0x0000FF00 >> 8;
+            memoria[mar++] = (mbr & 0xFF000000) >> 24;
+            memoria[mar++] = (mbr & 0x00FF0000) >> 16;
+            memoria[mar++] = (mbr & 0x0000FF00) >> 8;
             memoria[mar++] = mbr & 0x000000FF;
+            pc += 4;
             break;
         // movi - 0b0001 0101
         case 0x15:
             reg[ro0] = imm;
+            pc += 4;
             break;
         // addi - 0b0001 0110
         case 0x16:
             reg[ro0] += imm;
+            pc += 4;
             break;
         // subi - 0b0001 0111
         case 0x17:
             reg[ro0] -= imm;
+            pc += 4;
             break;
         // muli - 0b0001 1000
         case 0x18:
             reg[ro0] *= imm;
+            pc += 4;
             break;
         // divi - 0b0001 1001
         case 0x19:
             reg[ro0] /= imm;
+            pc += 4;
             break;
         // lsh - 0b0001 1010
         case 0x1A:
             reg[ro0] = reg[ro0] << imm;
+            pc += 4;
             break;
         // rsh - 0b0001 1011
         case 0x1B:
             reg[ro0] = reg[ro0] >> imm;
+            pc += 4;
             break;
     }
 }
@@ -234,11 +253,11 @@ unsigned int converter_opcode(char acumulador[]){
 
 void memoriaWriter() {
     FILE *arq = NULL;
-    char line[999];
+    char line[20];
     size_t len = 0;
     char l;
 
-    arq = fopen("example.txt", "rt");
+    arq = fopen("example_2.txt", "rt");
     if (arq == NULL) {
         printf("File not found \n");
         exit(EXIT_FAILURE);
@@ -246,6 +265,7 @@ void memoriaWriter() {
     
     while (fgets(line, sizeof(line), arq) != NULL) {
         char instrucao[12];
+        char linha[20];
         int flag = 1;
         char *token;
         char dadoInstrucao[5];
@@ -255,23 +275,14 @@ void memoriaWriter() {
         unsigned int dadosPos;
         unsigned int acumuladorHex;
 
-        printf("linha: %s\n", line);
-
-        token = strtok(line, ";");
-        
+        strcpy(linha, line);
+        token = strtok(linha, ";");
         posMemo = strtol(token, NULL, 16);
-        printf("%x\n", posMemo);
-
         token = strtok(NULL, ";");
-
-        printf("%s\n", token);
 
         if (strcmp(token, "d") == 0) { // Grava se for dado
             token = strtok(NULL, ";");
             dados = strtol(token, NULL, 16);
-            printf("dados: %x\n", dados);
-
-            flag = 6;
         } else if (strcmp(token, "i") == 0) {
             token = strtok(NULL, ";");
             strcpy(instrucao, token);
@@ -281,90 +292,40 @@ void memoriaWriter() {
             opcode = converter_opcode(token);
             dados = opcode << 24;
             token = strtok(NULL, " ");
-            printf("opcode %i\n", opcode);
+
             if (opcode != 0){
-                // converte reg0
                 strcpy(dadoInstrucao, token);
-                dadoInstrucao[strlen(token)-1] = '\0';
+                if (dadoInstrucao[0] == 'r') { // converte reg0
+                    dadoInstrucao[strlen(token)-1] = '\0';
 
-                acumuladorHex = strtol(&dadoInstrucao[1], NULL, 16) << 21;
-                dados = dados | acumuladorHex;
+                    acumuladorHex = strtol(&dadoInstrucao[1], NULL, 16) << 21;
+                    dados = dados | acumuladorHex;
                 
-                token = strtok(NULL, " ");
-                // converte reg1 ou IMM e MAR
-                strcpy(dadoInstrucao, token);
-                printf("instrucao %s\n", dadoInstrucao);
+                    token = strtok(NULL, " ");
 
-                if (dadoInstrucao[0] == 'r') {
-                    acumuladorHex = strtol(&dadoInstrucao[1], NULL, 16) << 18;
+                    // converte reg1 ou IMM e MAR
+                    strcpy(dadoInstrucao, token);
+
+                    if (dadoInstrucao[0] == 'r') {
+                        acumuladorHex = strtol(&dadoInstrucao[1], NULL, 16) << 18;
+                    } else {
+                        acumuladorHex = strtol(dadoInstrucao, NULL, 16);
+                    }
                 } else {
                     acumuladorHex = strtol(dadoInstrucao, NULL, 16);
                 }
                 dados = dados | acumuladorHex;
-                printf("token: %s\n", token);
-                printf("dados: %x\n", dados);
             }
         }
 
-        /*
-
-        for(int i = 0 ;  i <= strlen(line); i++){
-            if(line[i] != ';' && line[i] != '\r' && line[i] != '\n' && line[i] != ' ' && line[i] != ','){
-                strncat(acumulador, &line[i], 1);
-            } else if (strcmp(acumulador, "") != 0) {
-                if (flag == 1) { // Posição na memoriat                    
-                    posMemo = strtol(acumulador, NULL, 16);
-                    flag = 2;
-                    strcpy(acumulador, "");
-                } else if (flag == 2) { // É dados ou instrução
-                    dadoInstrucao = acumulador[0];
-                    flag = 3;
-                    strcpy(acumulador, "");
-                } else if (flag == 3) {
-                    if (dadoInstrucao == 'd') { // Grava se for dado
-                        dados = strtol(acumulador, NULL, 16);
-
-                        flag = 6;
-                    } else if (dadoInstrucao == 'i') { // converte opcode
-                        dados = converter_opcode(acumulador);
-                        dados = dados << 24;
-
-                        flag = 4;
-                    }
-
-                    strcpy(acumulador, "");
-                } else if (flag == 4) { // converte reg
-                    acumuladorHex = strtol(&acumulador[1], NULL, 16) << 21;
-                    dados = dados | acumuladorHex;
-
-                    flag = 5;
-                    strcpy(acumulador, "");
-                }
-            }
-        }
-
-        if (flag == 5) { // converte reg
-            if (acumulador[0] == 'r') {
-                acumuladorHex = strtol(&acumulador[1], NULL, 16) << 18;
-            } else {
-                acumuladorHex = strtol(acumulador, NULL, 16);
-            }
-            dados = dados | acumuladorHex;
-            flag = 6;
-            strcpy(acumulador, "");
-        }*/
-
-        if (flag == 6) {
-            dadosPos = dados;
-            memoria[posMemo] = dadosPos >> 24;
-            dadosPos = dados & 0x00FF0000;
-            memoria[posMemo+1] = dadosPos >> 16;
-            dadosPos = dados & 0x0000FF00;
-            memoria[posMemo+2] = dadosPos >> 8;
-            dadosPos = dados & 0x000000FF;
-            memoria[posMemo+3] = dadosPos;
-            flag = 0;
-        }
+        dadosPos = dados;
+        memoria[posMemo] = dadosPos >> 24;
+        dadosPos = dados & 0x00FF0000;
+        memoria[posMemo+1] = dadosPos >> 16;
+        dadosPos = dados & 0x0000FF00;
+        memoria[posMemo+2] = dadosPos >> 8;
+        dadosPos = dados & 0x000000FF;
+        memoria[posMemo+3] = dadosPos;
     }
 
     fclose(arq);
@@ -520,17 +481,16 @@ void amostragem() {
 int main() {
     memoriaWriter();
 
-    /*
-    while (1) {
+    while (pc <= 154) {
+        mar = pc;
         busca();
         decodifica();
         executa();
 
         amostragem();
-        pc += 4;
         printf("Pressione uma tecla para iniciar o próximo ciclo de máquina ou aperte CTRL+C para finalizar a execução do trabalho.\n");  
         getchar();    
-    }*/
+    }
 
 
     return 0;

@@ -3,7 +3,7 @@
 8;i;div r0, r1
 c;i;ld r1, 92
 10;i;ld r2, 96
-14;sub r1, r2
+14;i;sub r1, r2
 18;i;ld r2, 8e
 1c;i;mul r1, r2
 20;i;add r0, r1
