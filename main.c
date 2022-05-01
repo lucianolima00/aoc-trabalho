@@ -234,7 +234,7 @@ unsigned int converter_opcode(char acumulador[]){
 
 void memoriaWriter() {
     FILE *arq = NULL;
-    char *line = NULL;
+    char line[999];
     size_t len = 0;
     char l;
 
@@ -243,17 +243,19 @@ void memoriaWriter() {
         printf("File not found \n");
         exit(EXIT_FAILURE);
     }
-
-    while ((getline(&line, &len, arq)) != -1){
-        char instrucao[10];
+    
+    while (fgets(line, sizeof(line), arq) != NULL) {
+        char instrucao[12];
         int flag = 1;
-        char dadoInstrucao[4];
+        char *token;
+        char dadoInstrucao[5];
         unsigned int posMemo;
         unsigned int dados;
         unsigned int opcode;
         unsigned int dadosPos;
         unsigned int acumuladorHex;
-        char *token;
+
+        printf("linha: %s\n", line);
 
         token = strtok(line, ";");
         
@@ -299,7 +301,8 @@ void memoriaWriter() {
                     acumuladorHex = strtol(dadoInstrucao, NULL, 16);
                 }
                 dados = dados | acumuladorHex;
-                token = strtok(NULL, " ");
+                printf("token: %s\n", token);
+                printf("dados: %x\n", dados);
             }
         }
 
@@ -349,7 +352,7 @@ void memoriaWriter() {
             dados = dados | acumuladorHex;
             flag = 6;
             strcpy(acumulador, "");
-        }
+        }*/
 
         if (flag == 6) {
             dadosPos = dados;
@@ -361,12 +364,10 @@ void memoriaWriter() {
             dadosPos = dados & 0x000000FF;
             memoria[posMemo+3] = dadosPos;
             flag = 0;
-        }*/
+        }
     }
 
     fclose(arq);
-    if (line)
-        free(line);
 }
 
 void amostragem() {
