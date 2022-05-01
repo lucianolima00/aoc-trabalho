@@ -274,7 +274,7 @@ void memoriaWriter() {
     size_t len = 0;
     char l;
 
-    arq = fopen("example_2.txt", "rt");
+    arq = fopen("example.txt", "rt");
     if (arq == NULL) {
         printf("File not found \n");
         exit(EXIT_FAILURE);
@@ -498,7 +498,7 @@ void amostragem() {
 int main() {
     memoriaWriter();
 
-    while (pc <= 154) {
+    while (1) {
         mar = pc;
         busca();
         decodifica();
@@ -508,7 +508,6 @@ int main() {
         printf("Pressione uma tecla para iniciar o próximo ciclo de máquina ou aperte CTRL+C para finalizar a execução do trabalho.\n");  
         getchar();    
     }
-
 
     return 0;
 }
