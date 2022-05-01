@@ -234,7 +234,6 @@ unsigned int converter_opcode(char acumulador[]){
 
 void memoriaWriter() {
     FILE *arq = NULL;
-    char linha[100];
     char *line = NULL;
     size_t len = 0;
     char l;
@@ -246,13 +245,65 @@ void memoriaWriter() {
     }
 
     while ((getline(&line, &len, arq)) != -1){
-        char acumulador[10];
+        char instrucao[10];
         int flag = 1;
-        char dadoInstrucao;
+        char dadoInstrucao[4];
         unsigned int posMemo;
         unsigned int dados;
+        unsigned int opcode;
         unsigned int dadosPos;
         unsigned int acumuladorHex;
+        char *token;
+
+        token = strtok(line, ";");
+        
+        posMemo = strtol(token, NULL, 16);
+        printf("%x\n", posMemo);
+
+        token = strtok(NULL, ";");
+
+        printf("%s\n", token);
+
+        if (strcmp(token, "d") == 0) { // Grava se for dado
+            token = strtok(NULL, ";");
+            dados = strtol(token, NULL, 16);
+            printf("dados: %x\n", dados);
+
+            flag = 6;
+        } else if (strcmp(token, "i") == 0) {
+            token = strtok(NULL, ";");
+            strcpy(instrucao, token);
+            token = strtok(instrucao, " ");
+
+            // converte opcode
+            opcode = converter_opcode(token);
+            dados = opcode << 24;
+            token = strtok(NULL, " ");
+            printf("opcode %i\n", opcode);
+            if (opcode != 0){
+                // converte reg0
+                strcpy(dadoInstrucao, token);
+                dadoInstrucao[strlen(token)-1] = '\0';
+
+                acumuladorHex = strtol(&dadoInstrucao[1], NULL, 16) << 21;
+                dados = dados | acumuladorHex;
+                
+                token = strtok(NULL, " ");
+                // converte reg1 ou IMM e MAR
+                strcpy(dadoInstrucao, token);
+                printf("instrucao %s\n", dadoInstrucao);
+
+                if (dadoInstrucao[0] == 'r') {
+                    acumuladorHex = strtol(&dadoInstrucao[1], NULL, 16) << 18;
+                } else {
+                    acumuladorHex = strtol(dadoInstrucao, NULL, 16);
+                }
+                dados = dados | acumuladorHex;
+                token = strtok(NULL, " ");
+            }
+        }
+
+        /*
 
         for(int i = 0 ;  i <= strlen(line); i++){
             if(line[i] != ';' && line[i] != '\r' && line[i] != '\n' && line[i] != ' ' && line[i] != ','){
@@ -310,7 +361,7 @@ void memoriaWriter() {
             dadosPos = dados & 0x000000FF;
             memoria[posMemo+3] = dadosPos;
             flag = 0;
-        }
+        }*/
     }
 
     fclose(arq);
@@ -468,6 +519,7 @@ void amostragem() {
 int main() {
     memoriaWriter();
 
+    /*
     while (1) {
         busca();
         decodifica();
@@ -477,7 +529,7 @@ int main() {
         pc += 4;
         printf("Pressione uma tecla para iniciar o próximo ciclo de máquina ou aperte CTRL+C para finalizar a execução do trabalho.\n");  
         getchar();    
-    }
+    }*/
 
 
     return 0;
